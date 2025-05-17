@@ -9,7 +9,7 @@ export default function HomePage() {
   const router = useRouter();
 
   const start = () => {
-    router.push('/editor');
+    router.push('/coming-soon');
   };
 
   const features = [
@@ -210,6 +210,7 @@ export default function HomePage() {
               >
                 snz
               </a>
+              & cursor 
             </div>
             <div className="flex items-center gap-6">
               <a 
