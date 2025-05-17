@@ -201,14 +201,14 @@ export default function HomePage() {
         >
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-[#343A40]/60 text-sm">
-              © {new Date().getFullYear()} Ganttit. Made with ❤️ by{" "}
+              © {new Date().getFullYear()} Ganttit. Made with 🍷 by{" "}
               <a 
                 href="https://sanzianagrecu.com" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-[#FF6B6B] hover:text-[#FF6B6B]/80 transition-colors duration-200 font-medium hover:underline decoration-2 underline-offset-4"
               >
-                snz
+                snz {" "}
               </a>
               & cursor 
             </div>
