@@ -33,7 +33,7 @@ export default function ComingSoonPage() {
           transition={{ delay: 0.4 }}
           className="text-xl text-[#343A40]/80 text-center mb-12 max-w-2xl"
         >
-          Our awesome Gantt editor is under construction! 🏗️ We're putting the final touches to make it absolutely amazing. Stay tuned for the grand opening! 🎉
+          Our awesome Gantt editor is under construction! 🏗️ We&apos;re putting the final touches to make it absolutely amazing. Stay tuned for the grand opening! 🎉
         </motion.p>
 
         <motion.div
@@ -64,7 +64,7 @@ export default function ComingSoonPage() {
           transition={{ delay: 0.8 }}
           className="text-sm text-[#343A40]/60 mt-4 text-center mb-8"
         >
-          Coming faster than you can say "Gantt Chart"! ⚡
+          Coming faster than you can say &quot;Gantt Chart&quot;! ⚡
         </motion.p>
 
         <motion.div
