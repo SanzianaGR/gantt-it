@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Inter } from "next/font/google";
 import html2canvas from 'html2canvas';
@@ -72,6 +72,23 @@ export default function EditorPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const chartRef = useRef<HTMLDivElement>(null);
+
+  // Handle hotkeys
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.code == "Escape" && showTaskModal) {
+        setEditingTask(null);
+        setShowTaskModal(false);
+      }
+      if (e.code == "Delete" && editingTask) {
+        setTasks(tasks.filter((task) => task.id !== editingTask.id));
+        setShowTaskModal(false);
+        setEditingTask(null);
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [showTaskModal, editingTask, tasks]);
 
   const getDateFromX = (x: number): Date => {
     const today = new Date();
