@@ -1,5 +1,3 @@
-"client";
-
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -7,7 +5,7 @@ interface TeamMember {
   id: string;
   name: string;
   color: string;
-  role: string;
+  role?: string;
 }
 
 interface Task {
@@ -19,7 +17,7 @@ interface Task {
   description?: string;
   progress?: number;
   priority?: "low" | "medium" | "high" | "critical";
-  y?: number; // Canvas Y position
+  y?: number;
 }
 
 interface TimelineConfig {
@@ -29,17 +27,39 @@ interface TimelineConfig {
   unitWidth: number;
 }
 
-const TASK_HEIGHT = 32;
+const TASK_HEIGHT = 44; // Made thicker
 const HEADER_HEIGHT = 80;
-const TASK_SPACING = 8;
-const MIN_TASK_WIDTH = 100;
+const TASK_SPACING = 10;
+const MIN_TASK_WIDTH = 120;
 
-const TEAM_COLORS = ["#FF6B6B", "#343A40", "#FF6B6B", "#343A40", "#FF6B6B"];
+// Beautiful color palette
+const TEAM_COLORS = [
+  "#FF6B6B",
+  "#4ECDC4",
+  "#45B7D1",
+  "#96CEB4",
+  "#FFEAA7",
+  "#DDA0DD",
+  "#98D8C8",
+  "#F7DC6F",
+  "#BB8FCE",
+  "#85C1E9",
+  "#F8C471",
+  "#82E0AA",
+  "#F1948A",
+  "#85C1E9",
+  "#D2B4DE",
+  "#A3E4D7",
+  "#F9E79F",
+  "#AED6F1",
+  "#A9DFBF",
+  "#F5B7B1",
+];
 
 const PRIORITY_COLORS = {
-  low: "#343A40",
+  low: "#4ECDC4",
   medium: "#FF6B6B",
-  high: "#FF6B6B",
+  high: "#FFA07A",
   critical: "#343A40",
 };
 
@@ -95,6 +115,7 @@ export default function GanttItOne() {
         role: "Backend Developer",
         color: TEAM_COLORS[3],
       },
+      { id: "5", name: "Emma Wilson", color: TEAM_COLORS[4] }, // No role
     ];
 
     const today = new Date();
@@ -210,8 +231,11 @@ export default function GanttItOne() {
     ctx.fillStyle = "#FFFFFF";
     ctx.fillRect(0, 0, rect.width, rect.height);
 
-    // Draw timeline header
-    ctx.fillStyle = "#F8F9FA";
+    // Draw timeline header with gradient
+    const gradient = ctx.createLinearGradient(0, 0, 0, HEADER_HEIGHT);
+    gradient.addColorStop(0, "#FAFBFC");
+    gradient.addColorStop(1, "#F4F6F8");
+    ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, rect.width, HEADER_HEIGHT);
 
     // Draw time units
@@ -229,22 +253,30 @@ export default function GanttItOne() {
 
       // Draw unit background
       if (isToday) {
-        ctx.fillStyle = "#FF6B6B";
+        const todayGradient = ctx.createLinearGradient(
+          x,
+          0,
+          x + timelineConfig.unitWidth * zoomLevel,
+          HEADER_HEIGHT
+        );
+        todayGradient.addColorStop(0, "#FF6B6B");
+        todayGradient.addColorStop(1, "#FF5252");
+        ctx.fillStyle = todayGradient;
         ctx.fillRect(x, 0, timelineConfig.unitWidth * zoomLevel, HEADER_HEIGHT);
       }
 
-      // Draw unit border
-      ctx.strokeStyle = "#343A40";
-      ctx.globalAlpha = 0.1;
+      // Draw subtle unit border
+      ctx.strokeStyle = "#E0E6ED";
+      ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(x, 0);
       ctx.lineTo(x, rect.height);
       ctx.stroke();
-      ctx.globalAlpha = 1;
 
-      // Draw unit text
-      ctx.fillStyle = isToday ? "#FFFFFF" : "#343A40";
-      ctx.font = "bold 14px system-ui";
+      // Draw unit text with better typography
+      ctx.fillStyle = isToday ? "#FFFFFF" : "#2D3748";
+      ctx.font =
+        'bold 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
       ctx.textAlign = "center";
       ctx.fillText(
         unitInfo.main,
@@ -252,17 +284,17 @@ export default function GanttItOne() {
         35
       );
 
-      ctx.font = "12px system-ui";
-      ctx.globalAlpha = 0.7;
+      ctx.font =
+        '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillStyle = isToday ? "rgba(255,255,255,0.8)" : "#718096";
       ctx.fillText(
         unitInfo.sub,
         x + (timelineConfig.unitWidth * zoomLevel) / 2,
         55
       );
-      ctx.globalAlpha = 1;
     }
 
-    // Draw tasks
+    // Draw tasks with enhanced styling
     [...tasks, previewTask].filter(Boolean).forEach((task) => {
       if (!task) return;
 
@@ -278,80 +310,128 @@ export default function GanttItOne() {
           ? "#FF6B6B"
           : assignee?.color || PRIORITY_COLORS[task.priority || "medium"];
 
-      // Draw task background
-      ctx.fillStyle = task.id === "preview" ? "#FF6B6B" : taskColor;
-      ctx.globalAlpha = task.id === "preview" ? 0.6 : 1;
+      // Draw task shadow
+      if (task.id !== "preview") {
+        ctx.fillStyle = "rgba(0,0,0,0.08)";
+        ctx.beginPath();
+        ctx.roundRect(startX + 2, y + 2, width, TASK_HEIGHT, 12);
+        ctx.fill();
+      }
 
-      // Rounded rectangle
-      const radius = 8;
+      // Draw task background with gradient
+      const taskGradient = ctx.createLinearGradient(
+        startX,
+        y,
+        startX,
+        y + TASK_HEIGHT
+      );
+      if (task.id === "preview") {
+        taskGradient.addColorStop(0, "rgba(255,107,107,0.6)");
+        taskGradient.addColorStop(1, "rgba(255,107,107,0.4)");
+      } else {
+        taskGradient.addColorStop(0, taskColor);
+        taskGradient.addColorStop(1, adjustColorBrightness(taskColor, -20));
+      }
+
+      ctx.fillStyle = taskGradient;
       ctx.beginPath();
-      ctx.roundRect(startX, y, width, TASK_HEIGHT, radius);
+      ctx.roundRect(startX, y, width, TASK_HEIGHT, 12);
       ctx.fill();
 
-      // Draw progress bar
+      // Draw progress bar with glass effect
       if (task.progress && task.progress > 0 && task.id !== "preview") {
-        ctx.fillStyle = "#FFFFFF";
-        ctx.globalAlpha = 0.3;
-        ctx.beginPath();
-        ctx.roundRect(
+        const progressGradient = ctx.createLinearGradient(
           startX,
           y,
-          (width * task.progress) / 100,
-          TASK_HEIGHT,
-          radius
+          startX,
+          y + TASK_HEIGHT
+        );
+        progressGradient.addColorStop(0, "rgba(255,255,255,0.4)");
+        progressGradient.addColorStop(1, "rgba(255,255,255,0.2)");
+        ctx.fillStyle = progressGradient;
+        ctx.beginPath();
+        ctx.roundRect(
+          startX + 2,
+          y + 2,
+          ((width - 4) * task.progress) / 100,
+          TASK_HEIGHT - 4,
+          10
         );
         ctx.fill();
       }
 
-      ctx.globalAlpha = 1;
-
-      // Draw task text
+      // Draw task text with better positioning
       ctx.fillStyle = "#FFFFFF";
-      ctx.font = "bold 13px system-ui";
+      ctx.font =
+        'bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
       ctx.textAlign = "left";
 
       // Clip text to task width
       ctx.save();
       ctx.beginPath();
-      ctx.rect(startX + 12, y, width - 24, TASK_HEIGHT);
+      ctx.rect(startX + 16, y, width - 32, TASK_HEIGHT);
       ctx.clip();
 
-      ctx.fillText(task.title, startX + 12, y + 20);
+      ctx.fillText(task.title, startX + 16, y + 22);
 
       if (assignee && task.id !== "preview") {
-        ctx.font = "11px system-ui";
-        ctx.globalAlpha = 0.9;
-        ctx.fillText(assignee.name, startX + 12, y + 32);
+        ctx.font =
+          '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        ctx.fillText(assignee.name, startX + 16, y + 36);
       }
 
       ctx.restore();
-      ctx.globalAlpha = 1;
 
-      // Draw priority indicator
+      // Draw priority indicator with glow
       if (task.priority === "critical" && task.id !== "preview") {
-        ctx.fillStyle = "#FFFFFF";
+        ctx.shadowColor = "#FFD700";
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = "#FFD700";
         ctx.beginPath();
-        ctx.arc(startX + width - 15, y + 10, 3, 0, 2 * Math.PI);
+        ctx.arc(startX + width - 20, y + 15, 4, 0, 2 * Math.PI);
         ctx.fill();
+        ctx.shadowBlur = 0;
       }
     });
 
-    // Draw current date line
+    // Draw current date line with glow effect
     if (timelineConfig.timeUnit === "days") {
       const nowX = dateToX(new Date());
       if (nowX >= 0 && nowX <= rect.width) {
+        ctx.shadowColor = "#FF6B6B";
+        ctx.shadowBlur = 4;
         ctx.strokeStyle = "#FF6B6B";
-        ctx.lineWidth = 2;
-        ctx.globalAlpha = 0.8;
+        ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(nowX, HEADER_HEIGHT);
         ctx.lineTo(nowX, rect.height);
         ctx.stroke();
-        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
         ctx.lineWidth = 1;
       }
     }
   }, [tasks, teamMembers, timelineConfig, panOffset, zoomLevel, previewTask]);
+
+  // Helper function to adjust color brightness
+  const adjustColorBrightness = (hex: string, percent: number) => {
+    const num = parseInt(hex.replace("#", ""), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = (num >> 16) + amt;
+    const G = ((num >> 8) & 0x00ff) + amt;
+    const B = (num & 0x0000ff) + amt;
+    return (
+      "#" +
+      (
+        0x1000000 +
+        (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
+        (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
+        (B < 255 ? (B < 1 ? 0 : B) : 255)
+      )
+        .toString(16)
+        .slice(1)
+    );
+  };
 
   useEffect(() => {
     const animate = () => {
@@ -537,18 +617,24 @@ export default function GanttItOne() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#F8F9FA" }}>
       {/* Header */}
-      <div className="bg-white/90 backdrop-blur-sm border-b border-gray-200/60 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+      <div className="bg-white/95 backdrop-blur-xl border-b border-gray-200/50 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-6 py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center"
-                  style={{ backgroundColor: "#FF6B6B" }}
+                  className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, #FF6B6B 0%, #FF5252 100%)",
+                  }}
                 >
                   <span className="text-white font-bold text-lg">G</span>
                 </div>
-                <h1 className="text-2xl font-bold" style={{ color: "#343A40" }}>
+                <h1
+                  className="text-2xl font-bold tracking-tight"
+                  style={{ color: "#1A202C" }}
+                >
                   GanttIt
                 </h1>
               </div>
@@ -557,32 +643,41 @@ export default function GanttItOne() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowTimelineConfig(true)}
-                className="px-4 py-2 text-sm rounded-lg border border-gray-200 hover:bg-gray-50 transition-all duration-200"
-                style={{ color: "#343A40" }}
+                className="px-5 py-2.5 text-sm rounded-xl border border-gray-200/80 hover:bg-gray-50/80 transition-all duration-200 font-medium backdrop-blur-sm"
+                style={{ color: "#4A5568" }}
               >
                 Configure Timeline
               </button>
 
               <button
                 onClick={() => setShowMemberModal(true)}
-                className="px-6 py-3 text-white rounded-xl hover:opacity-90 transition-all duration-200 font-medium shadow-sm hover:shadow-md transform hover:scale-105"
-                style={{ backgroundColor: "#FF6B6B" }}
+                className="px-6 py-3 text-white rounded-xl transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105 backdrop-blur-sm"
+                style={{
+                  background:
+                    "linear-gradient(135deg, #FF6B6B 0%, #FF5252 100%)",
+                }}
               >
                 Add Member
               </button>
 
               <button
                 onClick={exportToPDF}
-                className="px-6 py-3 text-white rounded-xl hover:opacity-90 transition-all duration-200 font-medium shadow-sm hover:shadow-md transform hover:scale-105"
-                style={{ backgroundColor: "#FF6B6B" }}
+                className="px-6 py-3 text-white rounded-xl transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105 backdrop-blur-sm"
+                style={{
+                  background:
+                    "linear-gradient(135deg, #FF6B6B 0%, #FF5252 100%)",
+                }}
               >
                 Export PDF
               </button>
 
               <button
                 onClick={exportToPNG}
-                className="px-6 py-3 text-white rounded-xl hover:opacity-90 transition-all duration-200 font-medium shadow-sm hover:shadow-md transform hover:scale-105"
-                style={{ backgroundColor: "#FF6B6B" }}
+                className="px-6 py-3 text-white rounded-xl transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105 backdrop-blur-sm"
+                style={{
+                  background:
+                    "linear-gradient(135deg, #FF6B6B 0%, #FF5252 100%)",
+                }}
               >
                 Export PNG
               </button>
@@ -595,10 +690,10 @@ export default function GanttItOne() {
       <div className="max-w-7xl mx-auto px-6 py-6">
         {/* Team Members */}
         {teamMembers.length > 0 && (
-          <div className="mb-6">
+          <div className="mb-8">
             <h3
-              className="text-lg font-semibold mb-4"
-              style={{ color: "#343A40" }}
+              className="text-lg font-semibold mb-5"
+              style={{ color: "#2D3748" }}
             >
               Team Members
             </h3>
@@ -608,11 +703,15 @@ export default function GanttItOne() {
                   key={member.id}
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="flex items-center gap-3 bg-white rounded-xl px-5 py-4 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200"
+                  className="flex items-center gap-4 bg-white/80 backdrop-blur-sm rounded-2xl px-6 py-4 shadow-sm border border-gray-100/50 hover:shadow-lg transition-all duration-300"
                 >
                   <div
-                    className="w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-sm"
-                    style={{ backgroundColor: member.color }}
+                    className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md"
+                    style={{
+                      background: `linear-gradient(135deg, ${
+                        member.color
+                      } 0%, ${adjustColorBrightness(member.color, -15)} 100%)`,
+                    }}
                   >
                     {member.name
                       .split(" ")
@@ -622,16 +721,15 @@ export default function GanttItOne() {
                   <div>
                     <div
                       className="font-semibold text-sm"
-                      style={{ color: "#343A40" }}
+                      style={{ color: "#2D3748" }}
                     >
                       {member.name}
                     </div>
-                    <div
-                      className="text-xs opacity-70"
-                      style={{ color: "#343A40" }}
-                    >
-                      {member.role}
-                    </div>
+                    {member.role && (
+                      <div className="text-xs" style={{ color: "#718096" }}>
+                        {member.role}
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               ))}
@@ -640,19 +738,19 @@ export default function GanttItOne() {
         )}
 
         {/* Timeline Info */}
-        <div className="mb-4 flex items-center justify-between">
-          <div className="text-sm" style={{ color: "#343A40" }}>
+        <div className="mb-6 flex items-center justify-between bg-white/60 backdrop-blur-sm rounded-xl px-6 py-4 border border-gray-100/50">
+          <div className="text-sm font-medium" style={{ color: "#4A5568" }}>
             Timeline: {timelineConfig.startDate.toLocaleDateString()} •{" "}
             {timelineConfig.unitsToShow} {timelineConfig.timeUnit} • Zoom:{" "}
             {Math.round(zoomLevel * 100)}%
           </div>
-          <div className="text-xs opacity-70" style={{ color: "#343A40" }}>
+          <div className="text-xs" style={{ color: "#718096" }}>
             Click and drag to create tasks • Scroll to pan • Ctrl+Scroll to zoom
           </div>
         </div>
 
         {/* Canvas */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+        <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-100/50 overflow-hidden">
           <canvas
             ref={canvasRef}
             className="w-full cursor-crosshair"
@@ -673,14 +771,14 @@ export default function GanttItOne() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             onClick={() => setShowTimelineConfig(false)}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl"
+              className="bg-white/95 backdrop-blur-xl rounded-3xl p-8 w-full max-w-md shadow-2xl border border-gray-100/50"
               onClick={(e) => e.stopPropagation()}
             >
               <TimelineConfigForm
@@ -700,14 +798,14 @@ export default function GanttItOne() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             onClick={() => setShowTaskModal(false)}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl p-8 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl"
+              className="bg-white/95 backdrop-blur-xl rounded-3xl p-8 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-100/50"
               onClick={(e) => e.stopPropagation()}
             >
               <TaskEditForm
@@ -729,14 +827,14 @@ export default function GanttItOne() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             onClick={() => setShowMemberModal(false)}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl"
+              className="bg-white/95 backdrop-blur-xl rounded-3xl p-8 w-full max-w-md shadow-2xl border border-gray-100/50"
               onClick={(e) => e.stopPropagation()}
             >
               <AddMemberForm
@@ -747,6 +845,106 @@ export default function GanttItOne() {
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+// Custom Dropdown Component
+function CustomSelect({
+  value,
+  onChange,
+  options,
+  placeholder = "Select...",
+  label,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+  label?: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedOption = options.find((opt) => opt.value === value);
+
+  return (
+    <div className="relative">
+      {label && (
+        <label
+          className="block text-sm font-semibold mb-3"
+          style={{ color: "#2D3748" }}
+        >
+          {label}
+        </label>
+      )}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-full px-4 py-3.5 bg-white/80 border border-gray-200/80 rounded-xl text-left focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-200 backdrop-blur-sm hover:bg-white/90"
+          style={
+            {
+              "--tw-ring-color": "#FF6B6B",
+              color: selectedOption ? "#2D3748" : "#A0AEC0",
+            } as React.CSSProperties
+          }
+        >
+          <span className="block truncate font-medium">
+            {selectedOption ? selectedOption.label : placeholder}
+          </span>
+          <span className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+            <motion.svg
+              animate={{ rotate: isOpen ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+              className="w-5 h-5"
+              style={{ color: "#A0AEC0" }}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </motion.svg>
+          </span>
+        </button>
+
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+              transition={{ duration: 0.15 }}
+              className="absolute z-50 w-full mt-2 bg-white/95 backdrop-blur-xl rounded-xl shadow-2xl border border-gray-100/50 overflow-hidden"
+            >
+              <div className="py-2">
+                {options.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => {
+                      onChange(option.value);
+                      setIsOpen(false);
+                    }}
+                    className={`w-full px-4 py-3 text-left hover:bg-gray-50/80 transition-colors duration-150 font-medium ${
+                      option.value === value ? "text-white" : "text-gray-900"
+                    }`}
+                    style={{
+                      backgroundColor:
+                        option.value === value ? "#FF6B6B" : "transparent",
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
@@ -768,9 +966,15 @@ function TimelineConfigForm({
     onCancel();
   };
 
+  const timeUnitOptions = [
+    { value: "days", label: "Days" },
+    { value: "weeks", label: "Weeks" },
+    { value: "months", label: "Months" },
+  ];
+
   return (
     <div>
-      <h3 className="text-2xl font-bold mb-8" style={{ color: "#343A40" }}>
+      <h3 className="text-2xl font-bold mb-8" style={{ color: "#1A202C" }}>
         Configure Timeline
       </h3>
 
@@ -778,7 +982,7 @@ function TimelineConfigForm({
         <div>
           <label
             className="block text-sm font-semibold mb-3"
-            style={{ color: "#343A40" }}
+            style={{ color: "#2D3748" }}
           >
             Start Date
           </label>
@@ -791,49 +995,32 @@ function TimelineConfigForm({
                 startDate: new Date(e.target.value),
               })
             }
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-200"
+            className="w-full px-4 py-3.5 rounded-xl border border-gray-200/80 bg-white/80 backdrop-blur-sm outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-200 font-medium"
             style={
               {
                 "--tw-ring-color": "#FF6B6B",
-                color: "#343A40",
+                color: "#2D3748",
               } as React.CSSProperties
             }
           />
         </div>
 
-        <div>
-          <label
-            className="block text-sm font-semibold mb-3"
-            style={{ color: "#343A40" }}
-          >
-            Time Unit
-          </label>
-          <select
-            value={editedConfig.timeUnit}
-            onChange={(e) =>
-              setEditedConfig({
-                ...editedConfig,
-                timeUnit: e.target.value as "days" | "weeks" | "months",
-              })
-            }
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-200"
-            style={
-              {
-                "--tw-ring-color": "#FF6B6B",
-                color: "#343A40",
-              } as React.CSSProperties
-            }
-          >
-            <option value="days">Days</option>
-            <option value="weeks">Weeks</option>
-            <option value="months">Months</option>
-          </select>
-        </div>
+        <CustomSelect
+          label="Time Unit"
+          value={editedConfig.timeUnit}
+          onChange={(value) =>
+            setEditedConfig({
+              ...editedConfig,
+              timeUnit: value as "days" | "weeks" | "months",
+            })
+          }
+          options={timeUnitOptions}
+        />
 
         <div>
           <label
             className="block text-sm font-semibold mb-3"
-            style={{ color: "#343A40" }}
+            style={{ color: "#2D3748" }}
           >
             Units to Show: {editedConfig.unitsToShow}
           </label>
@@ -848,7 +1035,7 @@ function TimelineConfigForm({
                 unitsToShow: parseInt(e.target.value),
               })
             }
-            className="w-full"
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
             style={{ accentColor: "#FF6B6B" }}
           />
         </div>
@@ -856,15 +1043,17 @@ function TimelineConfigForm({
         <div className="flex justify-end gap-3 pt-6">
           <button
             onClick={onCancel}
-            className="px-6 py-3 rounded-xl hover:bg-gray-50 transition-all duration-200 font-semibold"
-            style={{ color: "#343A40" }}
+            className="px-6 py-3 rounded-xl hover:bg-gray-50/80 transition-all duration-200 font-semibold backdrop-blur-sm"
+            style={{ color: "#4A5568" }}
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="px-8 py-3 text-white rounded-xl hover:opacity-90 transition-all duration-200 font-semibold shadow-sm hover:shadow-md transform hover:scale-105"
-            style={{ backgroundColor: "#FF6B6B" }}
+            className="px-8 py-3 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+            style={{
+              background: "linear-gradient(135deg, #FF6B6B 0%, #FF5252 100%)",
+            }}
           >
             Save Timeline
           </button>
@@ -874,7 +1063,7 @@ function TimelineConfigForm({
   );
 }
 
-// Task Edit Form Component (keeping existing implementation)
+// Task Edit Form Component
 function TaskEditForm({
   task,
   teamMembers,
@@ -894,9 +1083,17 @@ function TaskEditForm({
     onSave(editedTask);
   };
 
+  const assigneeOptions = [
+    { value: "", label: "Unassigned" },
+    ...teamMembers.map((member) => ({
+      value: member.id,
+      label: `${member.name}${member.role ? ` (${member.role})` : ""}`,
+    })),
+  ];
+
   return (
     <div>
-      <h3 className="text-2xl font-bold mb-8" style={{ color: "#343A40" }}>
+      <h3 className="text-2xl font-bold mb-8" style={{ color: "#1A202C" }}>
         Edit Task
       </h3>
 
@@ -904,7 +1101,7 @@ function TaskEditForm({
         <div>
           <label
             className="block text-sm font-semibold mb-3"
-            style={{ color: "#343A40" }}
+            style={{ color: "#2D3748" }}
           >
             Task Title
           </label>
@@ -914,11 +1111,11 @@ function TaskEditForm({
             onChange={(e) =>
               setEditedTask({ ...editedTask, title: e.target.value })
             }
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-200"
+            className="w-full px-4 py-3.5 rounded-xl border border-gray-200/80 bg-white/80 backdrop-blur-sm outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-200 font-medium"
             style={
               {
                 "--tw-ring-color": "#FF6B6B",
-                color: "#343A40",
+                color: "#2D3748",
               } as React.CSSProperties
             }
             placeholder="Enter task title..."
@@ -928,7 +1125,7 @@ function TaskEditForm({
         <div>
           <label
             className="block text-sm font-semibold mb-3"
-            style={{ color: "#343A40" }}
+            style={{ color: "#2D3748" }}
           >
             Description
           </label>
@@ -937,53 +1134,30 @@ function TaskEditForm({
             onChange={(e) =>
               setEditedTask({ ...editedTask, description: e.target.value })
             }
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-opacity-50 h-24 resize-none transition-all duration-200"
+            className="w-full px-4 py-3.5 rounded-xl border border-gray-200/80 bg-white/80 backdrop-blur-sm outline-none focus:ring-2 focus:ring-opacity-50 h-24 resize-none transition-all duration-200 font-medium"
             style={
               {
                 "--tw-ring-color": "#FF6B6B",
-                color: "#343A40",
+                color: "#2D3748",
               } as React.CSSProperties
             }
             placeholder="Add task description..."
           />
         </div>
 
-        <div>
-          <label
-            className="block text-sm font-semibold mb-3"
-            style={{ color: "#343A40" }}
-          >
-            Assignee
-          </label>
-          <select
-            value={editedTask.assigneeId || ""}
-            onChange={(e) =>
-              setEditedTask({
-                ...editedTask,
-                assigneeId: e.target.value || undefined,
-              })
-            }
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-200"
-            style={
-              {
-                "--tw-ring-color": "#FF6B6B",
-                color: "#343A40",
-              } as React.CSSProperties
-            }
-          >
-            <option value="">Unassigned</option>
-            {teamMembers.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.name} ({member.role})
-              </option>
-            ))}
-          </select>
-        </div>
+        <CustomSelect
+          label="Assignee"
+          value={editedTask.assigneeId || ""}
+          onChange={(value) =>
+            setEditedTask({ ...editedTask, assigneeId: value || undefined })
+          }
+          options={assigneeOptions}
+        />
 
         <div>
           <label
             className="block text-sm font-semibold mb-3"
-            style={{ color: "#343A40" }}
+            style={{ color: "#2D3748" }}
           >
             Progress: {editedTask.progress || 0}%
           </label>
@@ -998,7 +1172,7 @@ function TaskEditForm({
                 progress: parseInt(e.target.value),
               })
             }
-            className="w-full"
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
             style={{ accentColor: "#FF6B6B" }}
           />
         </div>
@@ -1006,8 +1180,8 @@ function TaskEditForm({
         <div className="flex justify-between pt-6">
           <button
             onClick={() => onDelete(editedTask.id)}
-            className="px-6 py-3 rounded-xl hover:bg-red-50 transition-all duration-200 font-semibold"
-            style={{ color: "#FF6B6B" }}
+            className="px-6 py-3 rounded-xl hover:bg-red-50/80 transition-all duration-200 font-semibold backdrop-blur-sm"
+            style={{ color: "#E53E3E" }}
           >
             Delete Task
           </button>
@@ -1015,15 +1189,17 @@ function TaskEditForm({
           <div className="flex gap-3">
             <button
               onClick={onCancel}
-              className="px-6 py-3 rounded-xl hover:bg-gray-50 transition-all duration-200 font-semibold"
-              style={{ color: "#343A40" }}
+              className="px-6 py-3 rounded-xl hover:bg-gray-50/80 transition-all duration-200 font-semibold backdrop-blur-sm"
+              style={{ color: "#4A5568" }}
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
-              className="px-8 py-3 text-white rounded-xl hover:opacity-90 transition-all duration-200 font-semibold shadow-sm hover:shadow-md transform hover:scale-105"
-              style={{ backgroundColor: "#FF6B6B" }}
+              className="px-8 py-3 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+              style={{
+                background: "linear-gradient(135deg, #FF6B6B 0%, #FF5252 100%)",
+              }}
             >
               Save Changes
             </button>
@@ -1034,7 +1210,7 @@ function TaskEditForm({
   );
 }
 
-// Add Member Form Component (keeping existing implementation)
+// Add Member Form Component
 function AddMemberForm({
   onSave,
   onCancel,
@@ -1046,14 +1222,14 @@ function AddMemberForm({
   const [role, setRole] = useState("");
 
   const handleSave = () => {
-    if (!name.trim() || !role.trim()) return;
-    onSave({ name: name.trim(), role: role.trim() });
+    if (!name.trim()) return;
+    onSave({ name: name.trim(), role: role.trim() || undefined });
     onCancel();
   };
 
   return (
     <div>
-      <h3 className="text-2xl font-bold mb-8" style={{ color: "#343A40" }}>
+      <h3 className="text-2xl font-bold mb-8" style={{ color: "#1A202C" }}>
         Add Team Member
       </h3>
 
@@ -1061,7 +1237,7 @@ function AddMemberForm({
         <div>
           <label
             className="block text-sm font-semibold mb-3"
-            style={{ color: "#343A40" }}
+            style={{ color: "#2D3748" }}
           >
             Full Name *
           </label>
@@ -1069,11 +1245,11 @@ function AddMemberForm({
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-200"
+            className="w-full px-4 py-3.5 rounded-xl border border-gray-200/80 bg-white/80 backdrop-blur-sm outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-200 font-medium"
             style={
               {
                 "--tw-ring-color": "#FF6B6B",
-                color: "#343A40",
+                color: "#2D3748",
               } as React.CSSProperties
             }
             placeholder="Enter full name..."
@@ -1083,19 +1259,19 @@ function AddMemberForm({
         <div>
           <label
             className="block text-sm font-semibold mb-3"
-            style={{ color: "#343A40" }}
+            style={{ color: "#2D3748" }}
           >
-            Role *
+            Role <span style={{ color: "#A0AEC0" }}>(optional)</span>
           </label>
           <input
             type="text"
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-200"
+            className="w-full px-4 py-3.5 rounded-xl border border-gray-200/80 bg-white/80 backdrop-blur-sm outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-200 font-medium"
             style={
               {
                 "--tw-ring-color": "#FF6B6B",
-                color: "#343A40",
+                color: "#2D3748",
               } as React.CSSProperties
             }
             placeholder="e.g. Frontend Developer, Designer..."
@@ -1105,16 +1281,18 @@ function AddMemberForm({
         <div className="flex justify-end gap-3 pt-6">
           <button
             onClick={onCancel}
-            className="px-6 py-3 rounded-xl hover:bg-gray-50 transition-all duration-200 font-semibold"
-            style={{ color: "#343A40" }}
+            className="px-6 py-3 rounded-xl hover:bg-gray-50/80 transition-all duration-200 font-semibold backdrop-blur-sm"
+            style={{ color: "#4A5568" }}
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            disabled={!name.trim() || !role.trim()}
-            className="px-8 py-3 text-white rounded-xl hover:opacity-90 transition-all duration-200 font-semibold shadow-sm hover:shadow-md transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-            style={{ backgroundColor: "#FF6B6B" }}
+            disabled={!name.trim()}
+            className="px-8 py-3 text-white rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            style={{
+              background: "linear-gradient(135deg, #FF6B6B 0%, #FF5252 100%)",
+            }}
           >
             Add Member
           </button>
